@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Unicode Explorer</title>
+
+<style type="text/css">
+	* {margin:0; padding:0}
+	body {padding:10px}
+	h1 {font-size:16px; padding:0 0 10px 0}
+
+	#sidebar {font-family:sans-serif; width:160px; float:left; font-size:12px}
+
+	#hexRange {text-align:center}
+	#hexRange span, .pseudoLink {color:#00e; text-decoration:underline; cursor:pointer}
+
+	#uShortcuts {height:400px; width:190px; overflow:auto; margin:10px 0 0 0; padding:0;}
+	#uShortcuts li {margin:0; padding:0; list-style-type:none; cursor:pointer}
+	#uShortcuts {height:400px; overflow:auto}
+
+	#ucTable table {border-collapse:collapse; margin-left:200px;}
+	#ucTable table caption {font-family:sans-serif; padding:0 0 5px 0}
+	#ucTable table th {padding:1px 3px; font-weight:normal; font-family:monospace}
+	#ucTable table th, #ucTable table td {border:1px solid #333}
+	#ucTable table td {text-align:center; font-size:18px; padding:1px 10px}
+</style>
+
+<script>
+var document;
+
+String.prototype.format = function () {
+	var pattern = /\{\d+\}/g, args = arguments;
+	return this.replace(pattern, function (capture) { return args[capture.match(/\d+/)]; });
+};
+
+function hexformat(s) {
+	s = s.toString(16);
+	var sLen = s.length, ii;
+	if (sLen === 4) {
+		return s;
+	}
+	if (sLen > 4) {
+		return s.substr(s.length - 4);
+	}
+	for (ii = sLen; ii < 4; ii = ii + 1) {
+		s = '0' + s;
+	}
+	return s;
+}
+
+var ucGroups = {
+	'Latin': ['0000', '024F'],
+	'Latin extended additional': ['1E00', '1EFF'],
+	'Greek and Coptic': ['0374', '03FF'],
+	'Greek extended': ['1F00', '1FFF'],
+	'Cyrillic': ['0400', '0523'],
+	'Armenian': ['0531', '0589'],
+	'Hebrew': ['05BE', '05F4'],
+	'Arabic': ['0600', '076D'],
+	'Syriac': ['0700', '074F'],
+	'Hirigana': ['3040', '309F'],
+	'Katakana': ['30A0', '30FF'],
+	'Indic scripts': ['0900', '0DFF'],
+	'Thai': ['0E00', '0E7F'],
+	'CJK Unified Ideographs (Han)': ['4E00', '9FCB'],
+	'IPA Extensions + Spacing': ['0250', '02FE'],
+	'General punctuation': ['2000', '2064'],
+	'Arrows': ['2190', '21FF'],
+	'Arrows - B': ['2900', '297F'],
+	'Dingbats': ['2701', '27BE'],
+	'Geometric shapes': ['25A0', '25FF'],
+	'Miscellaneous symbols': ['2600', '2700'],
+	'Letterlike Symbols': ['2100', '214F'],
+	'Enclosed Alphanumerics': ['2460', '24FF'],
+	'Control Pictures': ['2400', '2426'],
+	'Mathematical Operators': ['2200', '22FF'],
+	'Roman Numerals': ['2160', '218F'],
+	'Block elements': ['2580', '259F'],
+	'Box Drawing': ['2500', '257F']
+},
+	charPerRow = 8,
+	rowsPerTable = 16;
+
+
+
+function inGroup(sAt, eAt) {
+	var foundGroups = [], x, groupStart, groupEnd, titlesList = [], ii;
+	for (x in ucGroups) {
+		if (ucGroups.hasOwnProperty(x)) {
+			groupStart = parseInt(ucGroups[x][0], 16);
+			groupEnd = parseInt(ucGroups[x][1], 16);
+			if (((groupStart >= sAt && groupStart <= eAt) || (groupEnd <= eAt && groupEnd >= sAt)) || (groupStart < sAt && groupEnd > eAt)) {
+				foundGroups[parseInt(ucGroups[x][0], 16)] = x;
+			}
+		}
+	}
+
+	titlesList = [];
+	for (ii = 0; ii < foundGroups.length; ii = ii + 1) {
+		if (foundGroups[ii]) {
+			titlesList[titlesList.length] = foundGroups[ii];
+		}
+	}
+
+	return titlesList.join('; ');
+}
+
+function popTable(startAt, endAt) {
+	startAt = startAt || '0';
+	startAt = parseInt(startAt, 16);
+	if (isNaN(startAt) || startAt < 0) {
+		startAt = 0;
+	}
+
+	var tmpRowsPerTable = rowsPerTable,
+		ucRows = [],
+		ucCells = [],
+		ranOut = false,
+		lastChar,
+		ii,
+		jj,
+		iNum,
+		hexNum,
+		hexChar,
+		EndAt,
+		startNextAt,
+		startPrevAt,
+		frmtUcTable,
+		prev;
+
+	if (endAt) {
+		tmpRowsPerTable = Math.ceil((parseInt(endAt, 16) - startAt) / charPerRow);
+	} else {
+		endAt = '30000';
+	}
+	lastChar = parseInt(endAt, 16);
+
+	for (ii = 0; ii < tmpRowsPerTable; ii = ii + 1) {
+		for (jj = 0; jj < charPerRow; jj = jj + 1) {
+			iNum = charPerRow * ii + jj + startAt;
+
+			if (iNum <= lastChar) {
+				hexNum = hexformat(iNum);
+				hexChar = String.fromCharCode(iNum);
+			} else {
+				hexNum = '';
+				hexChar = '';
+				if (jj === 0) {
+					ranOut = true;
+				}
+			}
+
+			ucCells[jj] = '<th>' + hexNum + '</th><td>' + hexChar + '</td>';
+		}
+
+		if (!ranOut) {
+			ucRows[ii] = '<tr>' + ucCells.join("\n") + '</tr>';
+		}
+	}
+
+	EndAt = (charPerRow * tmpRowsPerTable + startAt - 1).toString(16);
+	startNextAt = (charPerRow * tmpRowsPerTable + startAt).toString(16);
+	startPrevAt = (startAt - charPerRow * tmpRowsPerTable).toString(16);
+
+	frmtUcTable = '<table><caption>{0}</caption>{1}</table>';
+	document.getElementById('ucTable').innerHTML = frmtUcTable.format(inGroup(startAt, parseInt(EndAt, 16)), ucRows.join("\n"));
+	if (startAt > 0) {
+		prev = '<span onclick="popTable(\'' + startPrevAt + '\')">prev</span> « ';
+	} else {
+		prev = '';
+	}
+	document.getElementById('hexRange').innerHTML = prev + hexformat(startAt) + ' - ' + hexformat(EndAt) + ' » <span onclick="popTable(\'' + startNextAt + '\')">next</span>';
+}
+
+function buildNav() {
+	var aLi = [], frmtLi, x;
+	frmtLi = '<li onclick="popTable(\'{1}\', \'{2}\')" onmouseover="this.className=\'pseudoLink\'" onmouseout="this.className=\'\'">{0}</li>';
+	for (x in ucGroups) {
+		if (ucGroups.hasOwnProperty(x)) {
+			aLi[aLi.length] = frmtLi.format(x, ucGroups[x][0], ucGroups[x][1]);
+		}
+	}
+	document.getElementById('uShortcuts').innerHTML = aLi.join("\n");
+}
+</script>
+</head>
+
+<body onload="buildNav(); popTable()">
+	<div id="sidebar">
+		<h1>Unicode Explorer</h1>
+		<div id="hexRange"></div>
+		<ul id="uShortcuts"></ul>
+		<p><a href="javascript:popTable(prompt('start at: '))">Start at</a> (less than U+10000)</p>
+	</div>
+	<div id="ucTable"></div>
+</body>
+</html>
