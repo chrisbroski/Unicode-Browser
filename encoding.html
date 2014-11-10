@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="x-ua-compatible" content="IE=Edge">
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+<title>Character Encoding Demo</title>
+<style>
+
+</style>
+
+<body onload="showEncoding()">
+<div>
+<h1>Character Encoding Demo</h1>
+<p><textarea id="inp" rows="4" cols="30" onkeyup="showEncoding()">$¢€𤭢</textarea>
+
+<h3>JS native (utf-16) decimal</h3>
+<pre id="rsltd"></pre>
+
+<h3>utf-8 binary</h3>
+<pre id="rsltb"></pre>
+
+<h3>utf-8 hex</h3>
+<pre id="rslth"></pre>
+
+</div>
+<script>
+/*jslint browser: true */
+"use strict";
+
+function padTo(str, len) {
+    while (str.length < len) {
+        str = '0' + str;
+    }
+    return str;
+}
+
+function binArrToHex(aBin) {
+    var ii, len = aBin.length, aHex = [];
+    for (ii = 0; ii < len; ii = ii + 1) {
+        aHex.push(parseInt(aBin[ii], 2).toString(16));
+    }
+    return aHex;
+}
+
+function showEncoding() {
+    var ii,
+        text = document.getElementById('inp').value,
+        len = text.length,
+        out10 = '',
+        charVal = 0,
+        charValBin = '',
+        charValHex = '',
+        aChar = [];
+
+    document.getElementById('rsltb').innerHTML = '';
+    document.getElementById('rslth').innerHTML = '';
+
+    for (ii = 0; ii < len; ii = ii + 1) {
+        aChar.length = 0;
+        charVal = text.charCodeAt(ii);
+        charValBin = charVal.toString(2);
+        out10 = out10 + charVal + ' ';
+        if (charVal < 0x80) {
+            aChar.push(padTo(charValBin, 8));
+        } else if (charVal < 0x800) {
+            aChar.push(
+                '110' + padTo(charValBin.slice(0, -6), 5),
+                '10' + charValBin.slice(-6)
+            );
+        } else if (charVal < 0xd800) {
+            aChar.push(
+                '1110' + padTo(charValBin.slice(0, -12), 4),
+                '10' + charValBin.slice(-12, -6),
+                '10' + charValBin.slice(-6)
+            );
+        } else if (charVal < 0x200000) {
+            // UTF-16 pair detected
+            ii = ii + 1;
+            // convert from code pair to single point
+            charValHex = ((charVal - 0xD800) * 0x400 + text.charCodeAt(ii) - 0xDC00 + 0x10000).toString(16);
+            charValBin = parseInt(charValHex, 16).toString(2);
+            aChar.push(
+                '11110' + padTo(charValBin.slice(0, -18), 3),
+                '10' + charValBin.slice(-18, -12),
+                '10' + charValBin.slice(-12, -6),
+                '10' + charValBin.slice(-6)
+            );
+            out10 = out10 + text.charCodeAt(ii) + ' ';
+        } else {
+            // this should not be possible
+            throw 'Impossible character';
+        }
+        document.getElementById('rsltb').innerHTML = document.getElementById('rsltb').innerHTML + aChar.join(' ') + ' ';
+        document.getElementById('rslth').innerHTML = document.getElementById('rslth').innerHTML + binArrToHex(aChar).join(' ') + ' ';
+    }
+    document.getElementById('rsltd').innerHTML = out10;
+}
+
+</script>
