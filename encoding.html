@@ -6,22 +6,23 @@
 <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
 <title>Character Encoding Demo</title>
 <style>
-
+pre {white-space: pre-wrap; }
+textarea {max-width: 95%; }
 </style>
 
 <body onload="showEncoding()">
 <div>
 <h1>Character Encoding Demo</h1>
-<p><textarea id="inp" rows="4" cols="30" onkeyup="showEncoding()">$¢€𤭢</textarea>
+<p><textarea id="chars" rows="4" cols="30" onkeyup="showEncoding()">$¢€𤭢</textarea>
 
 <h3>JS native (utf-16) decimal</h3>
-<pre id="rsltd"></pre>
+<pre id="nativeDecimal"></pre>
 
 <h3>utf-8 binary</h3>
-<pre id="rsltb"></pre>
+<pre id="utf8binary"></pre>
 
 <h3>utf-8 hex</h3>
-<pre id="rslth"></pre>
+<pre id="utf8hex"></pre>
 
 </div>
 <script>
@@ -45,7 +46,9 @@ function binArrToHex(aBin) {
 
 function showEncoding() {
     var ii,
-        text = document.getElementById('inp').value,
+        text = document.getElementById('chars').value,
+        displayBinary = document.getElementById('utf8binary'),
+        displayHex = document.getElementById('utf8hex'),
         len = text.length,
         out10 = '',
         charVal = 0,
@@ -53,8 +56,8 @@ function showEncoding() {
         charValHex = '',
         aChar = [];
 
-    document.getElementById('rsltb').innerHTML = '';
-    document.getElementById('rslth').innerHTML = '';
+    displayBinary.innerHTML = '';
+    displayHex.innerHTML = '';
 
     for (ii = 0; ii < len; ii = ii + 1) {
         aChar.length = 0;
@@ -89,12 +92,12 @@ function showEncoding() {
             out10 = out10 + text.charCodeAt(ii) + ' ';
         } else {
             // this should not be possible
-            throw 'Impossible character';
+            throw 'Impossible character: >= 0x200000';
         }
-        document.getElementById('rsltb').innerHTML = document.getElementById('rsltb').innerHTML + aChar.join(' ') + ' ';
-        document.getElementById('rslth').innerHTML = document.getElementById('rslth').innerHTML + binArrToHex(aChar).join(' ') + ' ';
+        displayBinary.innerHTML = displayBinary.innerHTML + aChar.join(' ') + ' ';
+        displayHex.innerHTML = displayHex.innerHTML + binArrToHex(aChar).join(' ') + ' ';
     }
-    document.getElementById('rsltd').innerHTML = out10;
+    document.getElementById('nativeDecimal').innerHTML = out10;
 }
 
 </script>
